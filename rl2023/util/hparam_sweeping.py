@@ -38,8 +38,16 @@ def grid_search(num_samples: int, min: float = None, max: float = None, **kwargs
     **YOU MAY IMPLEMENT THIS FUNCTION FOR Q5**
 
     """
-    raise NotImplementedError
     values = torch.zeros(num_samples)
+
+    if min is None or max is None or num_samples < 1:
+        raise ValueError("Both min and max must be specified. The search space cannot have a negative number of samples")
+
+    if 'log' in kwargs and kwargs['log']:
+        values = torch.logspace(torch.log10(torch.tensor(min_val)), torch.log10(torch.tensor(max_val)), num_samples)
+    else:
+        values = torch.linspace(min_val, max_val, num_samples)
+
     return values
 
 
@@ -57,6 +65,14 @@ def random_search(num_samples: int, distribution: str, min: float=None, max: flo
     **YOU MAY IMPLEMENT THIS FUNCTION FOR Q5**
 
     """
-    raise NotImplementedError
     values = torch.zeros(num_samples)
+
+    if distribution == 'normal':
+        values = torch.normal(torch.tensor(kwargs['mean']), torch.tensor(kwargs['std']), size=(num_samples,))
+    elif distribution == 'uniform':
+        values = torch.rand(num_samples) * (max_val - min_val) + min_val
+    elif distribution == 'exponential':
+        values = torch.tensor(np.random.exponential(scale=kwargs['lambda'], size=num_samples))
     return values
+
+

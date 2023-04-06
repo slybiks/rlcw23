@@ -1,10 +1,11 @@
+import random
 from abc import ABC, abstractmethod
 from copy import deepcopy
 import gym
 import numpy as np
 import os.path
-from torch import Tensor
 from torch.distributions.categorical import Categorical
+from torch.nn.functional import mse_loss
 import torch.nn
 from torch.optim import Adam
 from typing import Dict, Iterable, List
@@ -113,7 +114,7 @@ class DQN(Agent):
         epsilon_decay_strategy: str = "constant",
         epsilon_decay: float = None,
         exploration_fraction: float = None,
-        **kwargs,
+        **kwargs
         ):
         """The constructor of the DQN agent class
 
@@ -131,6 +132,7 @@ class DQN(Agent):
                                                 epsilon will be decayed linearly from epsilon_start to epsilon_min.
         """
         super().__init__(action_space, observation_space)
+
 
         STATE_SIZE = observation_space.shape[0]
         ACTION_SIZE = action_space.n
@@ -151,6 +153,8 @@ class DQN(Agent):
         # ############################################# #
         # WRITE ANY HYPERPARAMETERS YOU MIGHT NEED HERE #
         # ############################################# #
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
         self.learning_rate = learning_rate
         self.update_counter = 0
         self.target_update_freq = target_update_freq
@@ -205,22 +209,27 @@ class DQN(Agent):
 
         def epsilon_linear_decay(*args, **kwargs):
             ### PUT YOUR CODE HERE ###
-            raise(NotImplementedError)
+            if timestep >= self.exploration_fraction * max_timestep:
+                return self.epsilon_min
+            decay_rate = min(1.0, timestep / (self.exploration_fraction * max_timestep))
+            epsilon = (1.0 - decay_rate) * self.epsilon_start + decay_rate * self.epsilon_min
+            return epsilon
 
         def epsilon_exponential_decay(*args, **kwargs):
             ### PUT YOUR CODE HERE ###
-            raise(NotImplementedError)
+            epsilon = max(self.epsilon_min, self.epsilon_start * (self.epsilon_exponential_decay_factor ** (timestep / max_timestep)))
+            return epsilon
 
         if self.epsilon_decay_strategy == "constant":
             pass
         elif self.epsilon_decay_strategy == "linear":
             # linear decay
             ### PUT YOUR CODE HERE ###
-            self.epsilon = epsilon_linear_decay(...)
+            self.epsilon = epsilon_linear_decay(timestep, max_timestep)
         elif self.epsilon_decay_strategy == "exponential":
             # exponential decay
             ### PUT YOUR CODE HERE ###
-            self.epsilon = epsilon_exponential_decay(...)
+            self.epsilon = epsilon_exponential_decay(timestep, max_timestep)
         else:
             raise ValueError("epsilon_decay_strategy must be either 'constant', 'linear' or 'exponential'")
 
@@ -238,7 +247,14 @@ class DQN(Agent):
         :return (sample from self.action_space): action the agent should perform
         """
         ### PUT YOUR CODE HERE ###
-        raise NotImplementedError("Needed for Q3")
+        if explore and random.uniform(0, 1) < self.epsilon:
+            # Exploration: choose a random action with probability epsilon
+            action = self.action_space.sample()
+        else:
+            # Exploitation: choose the best action according to the Q-value estimates
+            with torch.no_grad():
+                action = torch.argmax(self.critics_net(torch.tensor(obs))).item()
+        return action
 
     def update(self, batch: Transition) -> Dict[str, float]:
         """Update function for DQN
@@ -253,9 +269,37 @@ class DQN(Agent):
         :return (Dict[str, float]): dictionary mapping from loss names to loss values
         """
         ### PUT YOUR CODE HERE ###
-        raise NotImplementedError("Needed for Q3")
-        q_loss = 0.0
-        return {"q_loss": q_loss}
+        states, actions, next_states, rewards, done = batch
+
+        states = torch.as_tensor(states, dtype=torch.float32)
+        actions = torch.as_tensor(actions, dtype=torch.long)
+        rewards = torch.as_tensor(rewards, dtype=torch.float32)
+        next_states = torch.as_tensor(next_states, dtype=torch.float32)
+        done = torch.as_tensor(done, dtype=torch.float32)
+
+        # Compute Q-values for current states
+        current_q_values = self.critics_net(states).gather(1, actions)
+
+        # Compute Q-values for next states using the target network
+        with torch.no_grad():
+            next_q_values = self.critics_target(next_states).max(1)[0].detach().unsqueeze(1)
+            target_q_values = rewards + (self.gamma * next_q_values * (1 - done))
+
+        # Compute critic loss
+        q_loss = mse_loss(current_q_values, target_q_values)
+
+        # Optimize critic network
+        self.critics_optim.zero_grad()
+        q_loss.backward()
+        self.critics_optim.step()
+
+        # Update target network
+        if self.update_counter % self.target_update_freq == 0:
+            self.critics_target.hard_update(self.critics_net)
+
+        self.update_counter += 1
+        # Return loss
+        return {"q_loss": q_loss.item()}
 
 
 class Reinforce(Agent):
@@ -341,7 +385,17 @@ class Reinforce(Agent):
         :return (sample from self.action_space): action the agent should perform
         """
         ### PUT YOUR CODE HERE ###
-        raise NotImplementedError("Needed for Q3")
+        with torch.no_grad():
+            obs_tensor = torch.tensor(obs, dtype=torch.float32).unsqueeze(0)
+            action_probs = self.policy(obs_tensor)
+
+        if explore:
+            # Exploration: choose a random action with probability epsilon
+            action = Categorical(action_probs).sample().item()
+        else:
+            # Exploitation: choose the best action according to the MC estimates
+            action = torch.argmax(action_probs).item()
+        return action
 
     def update(
         self, rewards: List[float], observations: List[np.ndarray], actions: List[int],
@@ -357,6 +411,28 @@ class Reinforce(Agent):
             losses
         """
         ### PUT YOUR CODE HERE ###
-        raise NotImplementedError("Needed for Q3")
-        p_loss = 0.0
-        return {"p_loss": p_loss}
+        # Compute discounted rewards-to-go
+        G = 0
+        returns = []
+        for r in reversed(rewards):
+            G = r + self.gamma * G
+            returns.insert(0, G)
+
+        returns = torch.tensor(returns)
+
+        # Compute softmax probabilities of actions
+        logits = self.policy(torch.tensor(np.array(observations)))
+        # Policy's probability distribution over actions
+        # Returns a tensor of shape (batch_size, num_actions)
+        dist = Categorical(logits)
+        # Compute the log probabilities of the actions in dist
+        # Returns a tensor of shape (batch_size, episode_length), where each element (i,j) represents the log probability of the i-th action in the j-th timestep
+        log_probs = dist.log_prob(torch.tensor(actions))
+
+        p_loss = (-log_probs * returns).mean()
+        # Compute loss and update policy network
+        self.policy_optim.zero_grad()
+        p_loss.backward()
+        self.policy_optim.step()
+
+        return {"p_loss": p_loss.item()}

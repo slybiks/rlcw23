@@ -14,6 +14,7 @@ from rl2023.exercise4.agents import DDPG
 from rl2023.exercise4.train_ddpg import train
 from rl2023.exercise3.replay import ReplayBuffer
 from rl2023.util.hparam_sweeping import generate_hparam_configs
+from rl2023.util.hparam_sweeping import grid_search
 from rl2023.util.result_processing import Run
 
 RENDER = False
@@ -38,7 +39,16 @@ BIPEDAL_CONFIG = {
 BIPEDAL_CONFIG.update(BIPEDAL_CONSTANTS)
 
 ### INCLUDE YOUR CHOICE OF HYPERPARAMETERS HERE ###
-BIPEDAL_HPARAMS = {...}
+BIPEDAL_HPARAMS = {
+    'policy_learning_rate': grid_search(num_samples=5, min_val=1e-5, max_val=1e-3, log_scale=True),
+    'critic_learning_rate': grid_search(num_samples=5, min_val=1e-5, max_val=1e-3, log_scale=True),
+    'critic_hidden_size': grid_search(num_samples=3, min_val=64, max_val=512),
+    'policy_hidden_size': grid_search(num_samples=3, min_val=64, max_val=512),
+    'gamma': grid_search(num_samples=5, min_val=0.9, max_val=0.999),
+    'tau': grid_search(num_samples=5, min_val=0.1, max_val=0.5),
+    'batch_size': grid_search(num_samples=3, min_val=32, max_val=128),
+    'buffer_capacity': grid_search(num_samples=3, min_val=int(1e5), max_val=int(1e7), log_scale=True)
+}
 
 SWEEP_RESULTS_FILE_BIPEDAL = "DDPG-Bipedal-sweep-results-ex5.pkl"
 

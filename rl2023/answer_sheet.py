@@ -17,7 +17,7 @@ def question2_1() -> str:
     b) 0.8
     return: (str): your answer as a string. accepted strings: "a" or "b"
     """
-    answer = ""  # TYPE YOUR ANSWER HERE "a" or "b"
+    answer = "a"  # TYPE YOUR ANSWER HERE "a" or "b"
     return answer
 
 
@@ -29,7 +29,7 @@ def question2_2() -> str:
     b) 0.8
     return: (str): your answer as a string. accepted strings: "a" or "b"
     """
-    answer = ""  # TYPE YOUR ANSWER HERE "a" or "b"
+    answer = "a"  # TYPE YOUR ANSWER HERE "a" or "b"
     return answer
 
 
@@ -42,7 +42,7 @@ def question2_3() -> str:
     b) First-Visit Monte Carlo
     return: (str): your answer as a string. accepted strings: "a" or "b"
     """
-    answer = ""  # TYPE YOUR ANSWER HERE "a" or "b"
+    answer = "a"  # TYPE YOUR ANSWER HERE "a" or "b"
     return answer
 
 
@@ -98,7 +98,7 @@ def question3_3() -> str:
     c) 0.001
     return: (str): your answer as a string. accepted strings: "a", "b" or "c"
     """
-    answer = ""  # TYPE YOUR ANSWER HERE "a", "b" or "c"
+    answer = "c"  # TYPE YOUR ANSWER HERE "a", "b" or "c"
     return answer
 
 

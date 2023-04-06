@@ -7,7 +7,6 @@ import numpy as np
 import time
 from tqdm import tqdm
 from typing import List, Tuple, Dict
-import matplotlib.pyplot as plt
 
 from rl2023.constants import EX4_PENDULUM_CONSTANTS as PENDULUM_CONSTANTS
 from rl2023.constants import EX4_BIPEDAL_CONSTANTS as BIPEDAL_CONSTANTS
@@ -21,7 +20,7 @@ SWEEP = False # TRUE TO SWEEP OVER POSSIBLE HYPERPARAMETER CONFIGURATIONS
 NUM_SEEDS_SWEEP = 10 # NUMBER OF SEEDS TO USE FOR EACH HYPERPARAMETER CONFIGURATION
 SWEEP_SAVE_RESULTS = True # TRUE TO SAVE SWEEP RESULTS TO A FILE
 SWEEP_SAVE_ALL_WEIGTHS = False # TRUE TO SAVE ALL WEIGHTS FROM EACH SEED
-ENV = "PENDULUM" #"PENDULUM" OR "BIPEDAL"
+ENV = "BIPEDAL" #"PENDULUM" OR "BIPEDAL"
 
 PENDULUM_CONFIG = {
     "eval_freq": 2000,
@@ -37,15 +36,15 @@ PENDULUM_CONFIG = {
 PENDULUM_CONFIG.update(PENDULUM_CONSTANTS)
 
 BIPEDAL_CONFIG = {
-    "critic_hidden_size": [64, 64],
-    "policy_hidden_size": [64, 64],
+    "critic_hidden_size": [512, 512],
+    "policy_hidden_size": [512, 512],
 }
 BIPEDAL_CONFIG.update(BIPEDAL_CONSTANTS)
 
 ### INCLUDE YOUR CHOICE OF HYPERPARAMETERS HERE ###
 BIPEDAL_HPARAMS = {
-    "critic_hidden_size": ...,
-    "policy_hidden_size": ...,
+    "critic_hidden_size": [[512, 512]],
+    "policy_hidden_size": [[512, 512]],
     }
 
 SWEEP_RESULTS_FILE_BIPEDAL = "DDPG-Bipedal-sweep-results-ex4.pkl"

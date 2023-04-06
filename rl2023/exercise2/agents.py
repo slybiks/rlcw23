@@ -2,6 +2,8 @@ from abc import ABC, abstractmethod
 from collections import defaultdict
 import random
 from typing import List, Dict, DefaultDict
+
+import numpy as np
 from gym.spaces import Space
 from gym.spaces.utils import flatdim
 
@@ -54,9 +56,14 @@ class Agent(ABC):
         :return (int): index of selected action
         """
         ### PUT YOUR CODE HERE ###
-        raise NotImplementedError("Needed for Q2")
+        # Choose action
+        if random.uniform(0, 1) < self.epsilon:
+            action = self.action_space.sample()
+        else:
+            q_values = np.array([self.q_table[(obs, action)] for action in range(self.n_acts)])
+            action = np.argmax(q_values)
         ### RETURN AN ACTION HERE ###
-        return -1
+        return action
 
     @abstractmethod
     def schedule_hyperparameters(self, timestep: int, max_timestep: int):
@@ -105,7 +112,15 @@ class QLearningAgent(Agent):
         :return (float): updated Q-value for current observation-action pair
         """
         ### PUT YOUR CODE HERE ###
-        raise NotImplementedError("Needed for Q2")
+        n_obs_q_values = []
+
+        for act in range(self.n_acts):
+            n_obs_q_values.append(self.q_table[(n_obs, act)])
+
+        max_action = np.argmax(n_obs_q_values)
+        updated_q_value =  (1 - self.alpha) * self.q_table[(obs, action)] + self.alpha * (reward + (self.gamma * self.q_table[(n_obs, max_action)]))
+        self.q_table[(obs, action)] = updated_q_value
+
         return self.q_table[(obs, action)]
 
     def schedule_hyperparameters(self, timestep: int, max_timestep: int):
@@ -153,8 +168,22 @@ class MonteCarloAgent(Agent):
             indexed by the state action pair.
         """
         updated_values = {}
+        G = 0
+        episode, T = list(zip(obses, actions)), len(obses)
+
+        for t in range(T-1, -1, -1):
+            G = self.gamma * G + rewards[t]
+            sa_pair = (obses[t], actions[t])
+
+            if sa_pair not in episode[:t]:
+                if sa_pair not in self.sa_counts:
+                    self.sa_counts[sa_pair] = 1
+                else:
+                    self.sa_counts[sa_pair] += 1
+
+                self.q_table[sa_pair], updated_values[sa_pair] = self.q_table[sa_pair] + ((G - self.q_table[sa_pair])/self.sa_counts[sa_pair])
+
         ### PUT YOUR CODE HERE ###
-        raise NotImplementedError("Needed for Q2")
         return updated_values
 
     def schedule_hyperparameters(self, timestep: int, max_timestep: int):

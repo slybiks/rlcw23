@@ -1,9 +1,11 @@
 import copy
 import pickle
+import random
 
 import gym
 import numpy as np
 import time
+
 from tqdm import tqdm
 from typing import List, Tuple, Dict
 from collections import defaultdict
@@ -40,6 +42,7 @@ CARTPOLE_CONFIG = {
     "buffer_capacity": int(1e6),
     "plot_loss": False, # SET TRUE FOR 3.3 (Understanding the Loss)
 }
+
 CARTPOLE_CONFIG.update(CARTPOLE_CONSTANTS)
 
 CARTPOLE_HPARAMS_LINEAR_DECAY = {
@@ -139,7 +142,6 @@ def train(env: gym.Env, config, output: bool = True) -> Tuple[np.ndarray, np.nda
             timesteps, compute times at evaluation and a dictionary containing other training metrics specific to DQN
     """
     timesteps_elapsed = 0
-
     agent = DQN(
         action_space=env.action_space, observation_space=env.observation_space, **config
     )
@@ -190,7 +192,7 @@ def train(env: gym.Env, config, output: bool = True) -> Tuple[np.ndarray, np.nda
                         explore=False,
                         render=RENDER,
                         max_steps=max_steps,
-                        batch_size=config["batch_size"],
+                        batch_size=config["batch_size"]
                     )
                     eval_returns += episode_return / config["eval_episodes"]
                 if output:
@@ -236,7 +238,10 @@ if __name__ == "__main__":
     else:
         raise(ValueError(f"Unknown environment {ENV}"))
 
+    seed = random.randint(0, 2**32 - 1)
+
     env = gym.make(CONFIG["env"])
+    env.reset(seed=seed)
 
     if SWEEP and HPARAMS_SWEEP is not None:
         config_list, swept_params = generate_hparam_configs(CONFIG, HPARAMS_SWEEP)
