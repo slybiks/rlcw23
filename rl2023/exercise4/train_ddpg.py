@@ -36,15 +36,15 @@ PENDULUM_CONFIG = {
 PENDULUM_CONFIG.update(PENDULUM_CONSTANTS)
 
 BIPEDAL_CONFIG = {
-    "critic_hidden_size": [512, 512],
-    "policy_hidden_size": [512, 512],
+    "critic_hidden_size": [64, 64],
+    "policy_hidden_size": [64, 64],
 }
 BIPEDAL_CONFIG.update(BIPEDAL_CONSTANTS)
 
 ### INCLUDE YOUR CHOICE OF HYPERPARAMETERS HERE ###
 BIPEDAL_HPARAMS = {
-    "critic_hidden_size": [[512, 512]],
-    "policy_hidden_size": [[512, 512]],
+    "critic_hidden_size": [[512, 256]],
+    "policy_hidden_size": [[512, 256]],
     }
 
 SWEEP_RESULTS_FILE_BIPEDAL = "DDPG-Bipedal-sweep-results-ex4.pkl"
