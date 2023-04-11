@@ -1,5 +1,6 @@
 import copy
 import pickle
+import random
 from collections import defaultdict
 
 import gym
@@ -15,6 +16,7 @@ from rl2023.exercise4.train_ddpg import train
 from rl2023.exercise3.replay import ReplayBuffer
 from rl2023.util.hparam_sweeping import generate_hparam_configs
 from rl2023.util.hparam_sweeping import grid_search
+from rl2023.util.hparam_sweeping import random_search
 from rl2023.util.result_processing import Run
 
 RENDER = False
@@ -26,28 +28,27 @@ ENV = "BIPEDAL" # "ACROBOT" is also possible if you uncomment the corresponding 
 
 # IN EXERCISE 5 YOU SHOULD TUNE PARAMETERS IN THIS CONFIG ONLY
 BIPEDAL_CONFIG = {
-    "policy_learning_rate": 1e-4,
-    "critic_learning_rate": 1e-3,
-    "critic_hidden_size": [64, 64],
-    "policy_hidden_size": [64, 64],
+    "policy_learning_rate": 2e-4,
+    "critic_learning_rate": 3e-3,
+    "critic_hidden_size": [512, 256],
+    "policy_hidden_size": [512, 256],
+    "tau": 0.3,
+    "batch_size": 128,
     "gamma": 0.99,
-    "tau": 0.2,
-    "batch_size": 64,
-    "gamma": 0.99,
-    "buffer_capacity": int(1e6),
+    "buffer_capacity": int(1e7),
 }
 BIPEDAL_CONFIG.update(BIPEDAL_CONSTANTS)
 
 ### INCLUDE YOUR CHOICE OF HYPERPARAMETERS HERE ###
 BIPEDAL_HPARAMS = {
-    'policy_learning_rate': grid_search(num_samples=5, min_val=1e-5, max_val=1e-3, log_scale=True),
-    'critic_learning_rate': grid_search(num_samples=5, min_val=1e-5, max_val=1e-3, log_scale=True),
-    'critic_hidden_size': grid_search(num_samples=3, min_val=64, max_val=512),
-    'policy_hidden_size': grid_search(num_samples=3, min_val=64, max_val=512),
-    'gamma': grid_search(num_samples=5, min_val=0.9, max_val=0.999),
-    'tau': grid_search(num_samples=5, min_val=0.1, max_val=0.5),
-    'batch_size': grid_search(num_samples=3, min_val=32, max_val=128),
-    'buffer_capacity': grid_search(num_samples=3, min_val=int(1e5), max_val=int(1e7), log_scale=True)
+    'policy_learning_rate': random_search(num_samples=5, distribution='log_uniform', min_val=2e-4, max_val=3e-3),
+    'critic_learning_rate': random_search(num_samples=5, distribution='log_uniform', min_val=2e-4, max_val=3e-3),
+    'critic_hidden_size': [[64, 128], [128, 128], [256, 128], [512, 256], [512, 512]],
+    'policy_hidden_size': [[64, 128], [128, 128], [256, 128], [512, 256], [512, 512]],
+    'gamma': [0.99],
+    'tau': random_search(num_samples=3, distribution='uniform', min_val=0.1, max_val=0.4),
+    'batch_size': [64, 128],
+    'buffer_capacity': grid_search(num_samples=3, min_val=int(5e5), max_val=int(1e7), log_scale=True)
 }
 
 SWEEP_RESULTS_FILE_BIPEDAL = "DDPG-Bipedal-sweep-results-ex5.pkl"
@@ -60,7 +61,10 @@ if __name__ == "__main__":
     else:
         raise (ValueError(f"Unknown environment {ENV}"))
 
+    seed = random.randint(0, 2**32 - 1)
+
     env = gym.make(CONFIG["env"])
+    env.reset(seed=seed)
 
     if SWEEP and HPARAMS_SWEEP is not None:
         config_list, swept_params = generate_hparam_configs(CONFIG, HPARAMS_SWEEP)

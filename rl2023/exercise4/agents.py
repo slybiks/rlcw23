@@ -1,3 +1,4 @@
+import math
 import os
 import gym
 import numpy as np
@@ -10,7 +11,6 @@ from torch.autograd import Variable
 from rl2023.exercise3.agents import Agent
 from rl2023.exercise3.networks import FCNetwork
 from rl2023.exercise3.replay import Transition
-
 
 class DiagGaussian(torch.nn.Module):
     def __init__(self, mean, std):
@@ -149,6 +149,9 @@ class DDPG(Agent):
         for k, v in self.saveables.items():
             v.load_state_dict(checkpoint[k].state_dict())
 
+    def cosine_annealing(self, min_val: float, max_val: float, timestep: int, max_timesteps: int):
+        return min_val + 0.5 * (max_val - min_val) * (
+                1 + math.cos(math.pi * timestep / max_timesteps))
 
     def schedule_hyperparameters(self, timestep: int, max_timesteps: int):
         """Updates the hyperparameters
@@ -162,7 +165,34 @@ class DDPG(Agent):
         :param max_timestep (int): maximum timesteps that the training loop will run for
         """
         ### PUT YOUR CODE HERE ###
-        pass
+        if timestep > max_timesteps:
+            return
+
+        policy_lr_max = self.policy_learning_rate
+        policy_lr_min = policy_lr_max / 10
+
+        critic_lr_max = self.critic_learning_rate
+        critic_lr_min = critic_lr_max / 10
+
+        tau_max = self.tau
+        tau_min = tau_max / 10
+
+        noise_std_init = 0.2
+        noise_std_final = 0.02
+
+        # Cosine annealing schedule
+        policy_lr = self.cosine_annealing(min_val=policy_lr_min, max_val=policy_lr_max, timestep=timestep, max_timesteps=max_timesteps)
+
+        critic_lr = self.cosine_annealing(min_val=critic_lr_min, max_val=critic_lr_max, timestep=timestep, max_timesteps=max_timesteps)
+
+        tau = self.cosine_annealing(min_val=tau_min, max_val=tau_max, timestep=timestep, max_timesteps=max_timesteps)
+
+        noise_std = self.cosine_annealing(min_val=noise_std_final, max_val=noise_std_init, timestep=timestep, max_timesteps=max_timesteps)
+
+        self.policy_learning_rate = policy_lr
+        self.critic_learning_rate = critic_lr
+        self.tau = tau
+        self.noise.std = noise_std * torch.ones(self.action_space.shape[0])
 
     def act(self, obs: np.ndarray, explore: bool):
         """Returns an action (should be called at every timestep)

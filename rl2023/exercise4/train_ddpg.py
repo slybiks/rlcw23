@@ -1,5 +1,6 @@
 import copy
 import pickle
+import random
 from collections import defaultdict
 
 import gym
@@ -36,19 +37,18 @@ PENDULUM_CONFIG = {
 PENDULUM_CONFIG.update(PENDULUM_CONSTANTS)
 
 BIPEDAL_CONFIG = {
-    "critic_hidden_size": [64, 64],
-    "policy_hidden_size": [64, 64],
+    "critic_hidden_size": [256, 128],
+    "policy_hidden_size": [256, 128],
 }
 BIPEDAL_CONFIG.update(BIPEDAL_CONSTANTS)
 
 ### INCLUDE YOUR CHOICE OF HYPERPARAMETERS HERE ###
 BIPEDAL_HPARAMS = {
-    "critic_hidden_size": [[512, 256]],
-    "policy_hidden_size": [[512, 256]],
+    "critic_hidden_size": [[256, 128]],
+    "policy_hidden_size": [[256, 128]],
     }
 
 SWEEP_RESULTS_FILE_BIPEDAL = "DDPG-Bipedal-sweep-results-ex4.pkl"
-
 
 def play_episode(
         env,
@@ -192,7 +192,10 @@ if __name__ == "__main__":
     else:
         raise(ValueError(f"Unknown environment {ENV}"))
 
+    seed = random.randint(0, 2**32 - 1)
+
     env = gym.make(CONFIG["env"])
+    env.reset(seed=seed)
 
     if SWEEP and HPARAMS_SWEEP is not None:
         config_list, swept_params = generate_hparam_configs(CONFIG, HPARAMS_SWEEP)

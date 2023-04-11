@@ -167,6 +167,7 @@ class MonteCarloAgent(Agent):
         :return (Dict): A dictionary containing the updated Q-value of all the updated state-action pairs
             indexed by the state action pair.
         """
+        ### PUT YOUR CODE HERE ###
         updated_values = {}
         G = 0
         episode, T = list(zip(obses, actions)), len(obses)
@@ -181,9 +182,9 @@ class MonteCarloAgent(Agent):
                 else:
                     self.sa_counts[sa_pair] += 1
 
-                self.q_table[sa_pair], updated_values[sa_pair] = self.q_table[sa_pair] + ((G - self.q_table[sa_pair])/self.sa_counts[sa_pair])
+                self.q_table[sa_pair] = self.q_table[sa_pair] + ((G - self.q_table[sa_pair])/self.sa_counts[sa_pair])
+                updated_values[sa_pair] = self.q_table[sa_pair]
 
-        ### PUT YOUR CODE HERE ###
         return updated_values
 
     def schedule_hyperparameters(self, timestep: int, max_timestep: int):

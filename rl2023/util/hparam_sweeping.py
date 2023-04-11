@@ -1,4 +1,7 @@
 import itertools
+import math
+
+import numpy as np
 import torch
 from typing import Dict, List, Tuple, Iterable
 
@@ -25,7 +28,7 @@ def generate_hparam_configs(base_config:Dict, hparam_ranges:Dict) -> Tuple[List[
     return new_configs, swept_params
 
 
-def grid_search(num_samples: int, min: float = None, max: float = None, **kwargs)->Iterable:
+def grid_search(num_samples: int, min_val: float = None, max_val: float = None, **kwargs)->Iterable:
     """ Implement this method to set hparam range over a grid of hyperparameters.
     :param num_samples (int): number of samples making up the grid
     :param min (float): minimum value for the allowed range to sweep over
@@ -38,20 +41,20 @@ def grid_search(num_samples: int, min: float = None, max: float = None, **kwargs
     **YOU MAY IMPLEMENT THIS FUNCTION FOR Q5**
 
     """
-    values = torch.zeros(num_samples)
+    if min_val is None or max_val is None or num_samples < 1:
+        raise ValueError("Both min_val and max_val must be specified. "
+                         "The search space cannot have a negative number of samples")
 
-    if min is None or max is None or num_samples < 1:
-        raise ValueError("Both min and max must be specified. The search space cannot have a negative number of samples")
-
-    if 'log' in kwargs and kwargs['log']:
+    if 'log' in kwargs and kwargs['log_scale']:
         values = torch.logspace(torch.log10(torch.tensor(min_val)), torch.log10(torch.tensor(max_val)), num_samples)
+
     else:
         values = torch.linspace(min_val, max_val, num_samples)
 
-    return values
+    return values.tolist()
 
 
-def random_search(num_samples: int, distribution: str, min: float=None, max: float=None, **kwargs) -> Iterable:
+def random_search(num_samples: int, distribution: str, min_val: float=None, max_val: float=None, **kwargs) -> Iterable:
     """ Implement this method to sweep via random search, sampling from a given distribution.
     :param num_samples (int): number of samples to take from the distribution
     :param distribution (str): name of the distribution to sample from
@@ -69,10 +72,11 @@ def random_search(num_samples: int, distribution: str, min: float=None, max: flo
 
     if distribution == 'normal':
         values = torch.normal(torch.tensor(kwargs['mean']), torch.tensor(kwargs['std']), size=(num_samples,))
+
     elif distribution == 'uniform':
         values = torch.rand(num_samples) * (max_val - min_val) + min_val
-    elif distribution == 'exponential':
-        values = torch.tensor(np.random.exponential(scale=kwargs['lambda'], size=num_samples))
-    return values
 
+    elif distribution == 'log_uniform':
+        values = torch.logspace(torch.log10(torch.tensor(min_val)), torch.log10(torch.tensor(max_val)), num_samples)
 
+    return values.tolist()
